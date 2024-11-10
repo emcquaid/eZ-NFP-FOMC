@@ -1,0 +1,88 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// This script uses Pinescript
+// @version=5
+
+// eZ NFP FOMC Levels by empowerZ https://www.tradingview.com/u/empowerZ/
+indicator("eZ NFP FOMC Levels", overlay=true, max_lines_count=500, max_labels_count=500)
+
+// Input dates for FOMC and NFP events
+fomc1_date = input.time(timestamp("2024-06-12"), "FOMC1 Date")
+fomc2_date = input.time(timestamp("2024-07-31"), "FOMC2 Date")
+fomc3_date = input.time(timestamp("2024-09-18"), "FOMC3 Date")
+fomc4_date = input.time(timestamp("2024-11-07"), "FOMC4 Date")
+fomc0_date = input.time(timestamp("2024-12-18"), "Next FOMC Date")
+nfp1_date = input.time(timestamp("2024-06-07"), "NFP1 Date")
+nfp2_date = input.time(timestamp("2024-07-05"), "NFP2 Date")
+nfp3_date = input.time(timestamp("2024-08-02"), "NFP3 Date")
+nfp4_date = input.time(timestamp("2024-09-06"), "NFP4 Date")
+nfp5_date = input.time(timestamp("2024-10-04"), "NFP5 Date")
+nfp6_date = input.time(timestamp("2024-11-01"), "NFP6 Date")
+nfp0_date = input.time(timestamp("2024-12-06"), "Next NFP Date")
+show_info = input(true, 'Show Next NFP/FOMC Label')
+
+max_bars_back(time, 2500)
+max_bars_back(high, 2500)
+max_bars_back(low, 2500)
+
+// Function to check if current bar is within RTH
+is_rth(t) =>
+    h = hour(t)
+    m = minute(t)
+    time_in_minutes = h * 60 + m
+    time_in_minutes >= 9 * 60 + 30 and time_in_minutes < 16 * 60
+
+// Function to process events
+processEvent(event_date) =>
+    var float event_high = na
+    var float event_low = na
+    var int event_start = na
+    
+    if time >= event_date and time < event_date + 86400000 and is_rth(time)
+        if na(event_high) or high > event_high
+            event_high := high
+        if na(event_low) or low < event_low
+            event_low := low
+        if na(event_start)
+            event_start := bar_index
+    [event_high, event_low, event_start]
+
+// Process each event
+[fomc1_high, fomc1_low, fomc1_start] = processEvent(fomc1_date)
+[fomc2_high, fomc2_low, fomc2_start] = processEvent(fomc2_date)
+[fomc3_high, fomc3_low, fomc3_start] = processEvent(fomc3_date)
+[fomc4_high, fomc4_low, fomc4_start] = processEvent(fomc4_date)
+[nfp1_high, nfp1_low, nfp1_start] = processEvent(nfp1_date)
+[nfp2_high, nfp2_low, nfp2_start] = processEvent(nfp2_date)
+[nfp3_high, nfp3_low, nfp3_start] = processEvent(nfp3_date)
+[nfp4_high, nfp4_low, nfp4_start] = processEvent(nfp4_date)
+[nfp5_high, nfp5_low, nfp5_start] = processEvent(nfp5_date)
+[nfp6_high, nfp6_low, nfp6_start] = processEvent(nfp6_date)
+
+// Function to draw lines and labels
+drawLinesLabels(event_high, event_low, event_start, event_date, color_high, color_low, label_text) =>
+    if not na(event_high) and not na(event_low) and not na(event_start)
+        line.new(event_start, event_high, bar_index, event_high, color=color_high)
+        line.new(event_start, event_low, bar_index, event_low, color=color_low)
+        label.new(bar_index + 1, event_high, label_text + " High $" + str.tostring(event_high, "#.##") + " (" + str.format("{0,date,yyyy-MM-dd}", event_date) + ")", color=color_high, textcolor=color.white, style=label.style_label_left, size=size.small)
+        label.new(bar_index + 1, event_low, label_text + " Low $" + str.tostring(event_low, "#.##") + " (" + str.format("{0,date,yyyy-MM-dd}", event_date) + ")", color=color_low, textcolor=color.black, style=label.style_label_left, size=size.small)
+
+// Draw lines and labels for each event
+if barstate.islast
+    drawLinesLabels(fomc1_high, fomc1_low, fomc1_start, fomc1_date, color.blue, color.aqua, "FOMC1")
+    drawLinesLabels(fomc2_high, fomc2_low, fomc2_start, fomc2_date, color.purple, color.fuchsia, "FOMC2")
+    drawLinesLabels(fomc3_high, fomc3_low, fomc3_start, fomc3_date, color.navy, color.teal, "FOMC3")
+    drawLinesLabels(fomc4_high, fomc4_low, fomc4_start, fomc4_date, color.maroon, color.red, "FOMC4")
+    drawLinesLabels(nfp1_high, nfp1_low, nfp1_start, nfp1_date, color.blue, color.aqua, "NFP1")
+    drawLinesLabels(nfp2_high, nfp2_low, nfp2_start, nfp2_date, color.purple, color.fuchsia, "NFP2")
+    drawLinesLabels(nfp3_high, nfp3_low, nfp3_start, nfp3_date, color.navy, color.teal, "NFP3")
+    drawLinesLabels(nfp4_high, nfp4_low, nfp4_start, nfp4_date, color.maroon, color.red, "NFP4")
+    drawLinesLabels(nfp5_high, nfp5_low, nfp5_start, nfp5_date, color.silver, color.gray, "NFP5")
+    drawLinesLabels(nfp6_high, nfp6_low, nfp6_start, nfp6_date, color.orange, color.yellow, "NFP6")
+    
+// Define the transparent table color
+trSlvr = color.new(color.silver, 80)  // 80% transparency
+
+var tbl = table.new(position.bottom_right, 1, 2, border_width = 4)
+if barstate.islast and show_info
+    table.cell(tbl, 0, 0, '  Next FOMC: ' + str.format("{0,date,yyyy-MM-dd}" + '  ', fomc0_date) + '\nFOMC ' + str.format("{0,date,yyyy-MM-dd}", fomc1_date) + ' ' + str.tostring(fomc1_low, "#.##") + ' - ' + str.tostring(fomc1_high, "#.##") + '\nFOMC ' + str.format("{0,date,yyyy-MM-dd}", fomc2_date) + ' ' + str.tostring(fomc2_low, "#.##") + ' - ' + str.tostring(fomc2_high, "#.##") + '\nFOMC ' + str.format("{0,date,yyyy-MM-dd}", fomc3_date) + ' ' + str.tostring(fomc3_low, "#.##") + ' - ' + str.tostring(fomc3_high, "#.##") + '\nFOMC ' + str.format("{0,date,yyyy-MM-dd}", fomc4_date) + ' ' + str.tostring(fomc4_low, "#.##") + ' - ' + str.tostring(fomc4_high, "#.##"), bgcolor=trSlvr, text_size=size.small)
+    table.cell(tbl, 0, 1, ' Next NFP: ' + str.format("{0,date,yyyy-MM-dd}" + ' ', nfp0_date) + '\nNFP ' + str.format("{0,date,yyyy-MM-dd}", nfp1_date) + ' ' + str.tostring(nfp1_low, "#.##") + ' - ' + str.tostring(nfp1_high, "#.##") + '\nNFP ' + str.format("{0,date,yyyy-MM-dd}", nfp2_date) + ' ' + str.tostring(nfp2_low, "#.##") + ' - ' + str.tostring(nfp2_high, "#.##") + '\nNFP ' + str.format("{0,date,yyyy-MM-dd}", nfp3_date) + ' ' + str.tostring(nfp3_low, "#.##") + ' - ' + str.tostring(nfp3_high, "#.##") + '\nNFP ' + str.format("{0,date,yyyy-MM-dd}", nfp4_date) + ' ' + str.tostring(nfp4_low, "#.##") + ' - ' + str.tostring(nfp4_high, "#.##") + '\nNFP ' + str.format("{0,date,yyyy-MM-dd}", nfp5_date) + ' ' + str.tostring(nfp5_low, "#.##") + ' - ' + str.tostring(nfp5_high, "#.##") + '\nNFP ' + str.format("{0,date,yyyy-MM-dd}", nfp6_date) + ' ' + str.tostring(nfp6_low, "#.##") + ' - ' + str.tostring(nfp6_high, "#.##"), bgcolor=trSlvr, text_size=size.small)
